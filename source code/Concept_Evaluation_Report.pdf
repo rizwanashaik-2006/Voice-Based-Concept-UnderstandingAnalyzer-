@@ -1,0 +1,361 @@
+import os
+from datetime import datetime
+from xml.sax.saxutils import escape
+
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle,
+    Image,
+    PageBreak
+)
+
+
+class EvaluationReport:
+
+    def create_report(
+        self,
+        transcript,
+        semantic_score,
+        understanding_level,
+        confidence_level,
+        strengths,
+        suggestions,
+        speech_metrics,
+        final_score,
+        grade,
+        recommendation,
+        waveform_image
+    ):
+
+        os.makedirs(
+            "reports",
+            exist_ok=True
+        )
+
+        report_location = os.path.join(
+            "reports",
+            "Concept_Evaluation_Report.pdf"
+        )
+
+        pdf_document = SimpleDocTemplate(
+            report_location
+        )
+
+        style_sheet = getSampleStyleSheet()
+
+        report_content = []
+
+        # -----------------------------------------
+        # Report Header
+        # -----------------------------------------
+
+        report_content.append(
+            Paragraph(
+                "<font size=22><b>INTELLIGENT SPEECH CONCEPT EVALUATOR</b></font>",
+                style_sheet["Title"]
+            )
+        )
+
+        report_content.append(
+            Paragraph(
+                "<b>Automated Learning Assessment Report</b>",
+                style_sheet["Heading2"]
+            )
+        )
+
+        report_content.append(
+            Paragraph(
+                f"Generated On: {datetime.now().strftime('%d-%m-%Y %H:%M')}",
+                style_sheet["Normal"]
+            )
+        )
+
+        unique_id = datetime.now().strftime(
+            "VBCUA-%Y%m%d-%H%M%S"
+        )
+
+        report_content.append(
+            Paragraph(
+                f"<b>Assessment ID:</b> {unique_id}",
+                style_sheet["Normal"]
+            )
+        )
+
+        report_content.append(
+            Spacer(1, 20)
+        )
+
+        # -----------------------------------------
+        # Status Banner
+        # -----------------------------------------
+
+        status_banner = Table(
+            [["✔ Evaluation Process Finished Successfully"]]
+        )
+
+        status_banner.setStyle(
+            TableStyle([
+                ("BACKGROUND", (0, 0), (-1, -1), colors.darkgreen),
+                ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 12),
+                ("TOPPADDING", (0, 0), (-1, -1), 10),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 10)
+            ])
+        )
+
+        report_content.append(
+            status_banner
+        )
+
+        report_content.append(
+            Spacer(1, 20)
+        )
+
+        # -----------------------------------------
+        # Waveform Visualization
+        # -----------------------------------------
+
+        report_content.append(
+            Paragraph(
+                "<b>Speech Signal Visualization</b>",
+                style_sheet["Heading2"]
+            )
+        )
+
+        if waveform_image and os.path.exists(
+            waveform_image
+        ):
+
+            report_content.append(
+                Image(
+                    waveform_image,
+                    width=450,
+                    height=160
+                )
+            )
+
+        else:
+
+            report_content.append(
+                Paragraph(
+                    "Speech waveform not available.",
+                    style_sheet["Normal"]
+                )
+            )
+
+        report_content.append(
+            Spacer(1, 20)
+        )
+
+        # -----------------------------------------
+        # Performance Snapshot
+        # -----------------------------------------
+
+        report_content.append(
+            Paragraph(
+                "<b>Performance Snapshot</b>",
+                style_sheet["Heading2"]
+            )
+        )
+
+        performance_table = Table([
+            ["Final Score", f"{final_score}/100"],
+            ["Grade", grade],
+            ["Overall Rating", recommendation]
+        ])
+
+        performance_table.setStyle(
+            TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.darkblue),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 8)
+            ])
+        )
+
+        report_content.append(
+            performance_table
+        )
+
+        report_content.append(
+            Spacer(1, 20)
+        )
+
+        # -----------------------------------------
+        # Transcript Section
+        # -----------------------------------------
+
+        report_content.append(
+            Paragraph(
+                "<b>Recorded Explanation</b>",
+                style_sheet["Heading2"]
+            )
+        )
+
+        report_content.append(
+            Paragraph(
+                escape(transcript),
+                style_sheet["BodyText"]
+            )
+        )
+
+        report_content.append(
+            Spacer(1, 15)
+        )
+
+        # -----------------------------------------
+        # Concept Evaluation
+        # -----------------------------------------
+
+        report_content.append(
+            Paragraph(
+                "<b>Concept Similarity Assessment</b>",
+                style_sheet["Heading2"]
+            )
+        )
+
+        concept_table = Table([
+            ["Metric", "Result"],
+            ["Similarity Score", f"{semantic_score}%"],
+            ["Knowledge Level", understanding_level],
+            ["Confidence Index", confidence_level]
+        ])
+
+        concept_table.setStyle(
+            TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.lightblue),
+                ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                ("BACKGROUND", (0, 1), (0, -1), colors.whitesmoke),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 8)
+            ])
+        )
+
+        report_content.append(
+            concept_table
+        )
+
+        report_content.append(
+            Spacer(1, 15)
+        )
+
+        # -----------------------------------------
+        # Speech Analysis
+        # -----------------------------------------
+
+        report_content.append(
+            Paragraph(
+                "<b>Speech Characteristics Analysis</b>",
+                style_sheet["Heading2"]
+            )
+        )
+
+        speech_table = Table([
+            ["Metric", "Value"],
+            ["Recording Duration", f"{speech_metrics.get('duration_seconds', 'N/A')} sec"],
+            ["Word Count", speech_metrics["total_words"]],
+            ["Speaking Rate", speech_metrics["words_per_minute"]],
+            ["Silence Percentage", f"{speech_metrics['silence_ratio']} %"],
+            ["Voice Energy", speech_metrics["average_energy"]],
+            ["Filler Expressions", speech_metrics["filler_word_count"]]
+        ])
+
+        speech_table.setStyle(
+            TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.lightgreen),
+                ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                ("BACKGROUND", (0, 1), (0, -1), colors.whitesmoke),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 8)
+            ])
+        )
+
+        report_content.append(
+            speech_table
+        )
+
+        report_content.append(
+            Spacer(1, 20)
+        )
+
+        report_content.append(
+            PageBreak()
+        )
+
+        # -----------------------------------------
+        # Positive Observations
+        # -----------------------------------------
+
+        report_content.append(
+            Paragraph(
+                "<b>Positive Observations</b>",
+                style_sheet["Heading2"]
+            )
+        )
+
+        for point in strengths:
+
+            report_content.append(
+                Paragraph(
+                    f"✔ {point}",
+                    style_sheet["Normal"]
+                )
+            )
+
+        report_content.append(
+            Spacer(1, 15)
+        )
+
+        # -----------------------------------------
+        # Improvement Suggestions
+        # -----------------------------------------
+
+        report_content.append(
+            Paragraph(
+                "<b>Suggested Improvements</b>",
+                style_sheet["Heading2"]
+            )
+        )
+
+        for point in suggestions:
+
+            report_content.append(
+                Paragraph(
+                    f"• {point}",
+                    style_sheet["Normal"]
+                )
+            )
+
+        report_content.append(
+            Spacer(1, 20)
+        )
+
+        pdf_document.build(
+            report_content,
+            onFirstPage=EvaluationReport.add_page_number,
+            onLaterPages=EvaluationReport.add_page_number
+        )
+
+        return report_location
+
+    @staticmethod
+    def add_page_number(canvas, document):
+
+        current_page = canvas.getPageNumber()
+
+        canvas.setFont(
+            "Helvetica",
+            9
+        )
+
+        canvas.drawRightString(
+            560,
+            20,
+            f"Page {current_page}"
+        )
