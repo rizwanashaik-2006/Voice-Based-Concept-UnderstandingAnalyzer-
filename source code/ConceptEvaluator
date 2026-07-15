@@ -1,0 +1,248 @@
+import json
+import os
+
+import streamlit as st
+
+from sentence_transformers import SentenceTransformer
+from sentence_transformers.util import cos_sim
+
+
+@st.cache_resource
+def get_embedding_model():
+    return SentenceTransformer(
+        "all-MiniLM-L6-v2"
+    )
+
+
+class ConceptEvaluator:
+
+    def __init__(self):
+
+        self.embedding_model = (
+            get_embedding_model()
+        )
+
+        concepts_file = os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "data",
+            "reference_concepts.json"
+        )
+
+        with open(
+            concepts_file,
+            "r",
+            encoding="utf-8"
+        ) as json_file:
+
+            self.concepts = json.load(
+                json_file
+            )
+
+    def fetch_reference(
+        self,
+        topic_name
+    ):
+
+        return self.concepts.get(
+            topic_name,
+            "Topic reference unavailable."
+        )
+
+    def evaluate(
+        self,
+        topic_name,
+        response_text
+    ):
+
+        expected_answer = (
+            self.concepts.get(
+                topic_name
+            )
+        )
+
+        if expected_answer is None:
+
+            raise ValueError(
+                f"Reference content missing for '{topic_name}'"
+            )
+
+        # ---------------------------------------
+        # Generate embeddings
+        # ---------------------------------------
+
+        reference_vector = (
+            self.embedding_model.encode(
+                expected_answer,
+                convert_to_tensor=True
+            )
+        )
+
+        response_vector = (
+            self.embedding_model.encode(
+                response_text,
+                convert_to_tensor=True
+            )
+        )
+
+        similarity_value = cos_sim(
+            reference_vector,
+            response_vector
+        )
+
+        match_percentage = round(
+            float(
+                similarity_value.item()
+            ) * 100,
+            2
+        )
+
+        # ---------------------------------------
+        # Interpretation Layer
+        # ---------------------------------------
+
+        if match_percentage >= 90:
+
+            understanding = (
+                "Outstanding Understanding"
+            )
+
+            confidence_level = (
+                "Very High"
+            )
+
+            positive_points = [
+                "Strong command over the topic.",
+                "Important concepts were addressed correctly.",
+                "Explanation demonstrates technical clarity.",
+                "Information was presented logically."
+            ]
+
+            improvement_points = [
+                "Include additional real-life examples.",
+                "Mention advanced concepts if applicable.",
+                "Expand practical applications."
+            ]
+
+            final_advice = (
+                "Excellent performance. Continue refining "
+                "your explanations with practical insights."
+            )
+
+        elif match_percentage >= 80:
+
+            understanding = (
+                "Strong Understanding"
+            )
+
+            confidence_level = (
+                "High"
+            )
+
+            positive_points = [
+                "Most key concepts are covered.",
+                "Explanation is clear and understandable.",
+                "Good overall structure."
+            ]
+
+            improvement_points = [
+                "Add more technical depth.",
+                "Use additional examples.",
+                "Improve detail in certain areas."
+            ]
+
+            final_advice = (
+                "Good explanation overall. More examples "
+                "and details can improve the score further."
+            )
+
+        elif match_percentage >= 70:
+
+            understanding = (
+                "Moderate Understanding"
+            )
+
+            confidence_level = (
+                "Medium"
+            )
+
+            positive_points = [
+                "Basic concepts were identified.",
+                "Demonstrates partial understanding."
+            ]
+
+            improvement_points = [
+                "Increase concept coverage.",
+                "Improve sequence of explanation.",
+                "Use more technical terminology."
+            ]
+
+            final_advice = (
+                "The explanation is acceptable but requires "
+                "greater conceptual depth."
+            )
+
+        elif match_percentage >= 60:
+
+            understanding = (
+                "Foundational Understanding"
+            )
+
+            confidence_level = (
+                "Low"
+            )
+
+            positive_points = [
+                "Shows an initial understanding of the topic."
+            ]
+
+            improvement_points = [
+                "Revise the topic content.",
+                "Explain ideas in a stepwise manner.",
+                "Use definitions and examples."
+            ]
+
+            final_advice = (
+                "Further revision and practice are recommended."
+            )
+
+        else:
+
+            understanding = (
+                "Insufficient Understanding"
+            )
+
+            confidence_level = (
+                "Very Low"
+            )
+
+            positive_points = [
+                "An attempt was made to explain the concept."
+            ]
+
+            improvement_points = [
+                "Study the topic again carefully.",
+                "Practice before recording.",
+                "Start with the core definition.",
+                "Include simple examples."
+            ]
+
+            final_advice = (
+                "Additional preparation is needed before "
+                "re-attempting the evaluation."
+            )
+
+        return {
+
+            "score": match_percentage,
+
+            "feedback": understanding,
+
+            "confidence": confidence_level,
+
+            "strengths": positive_points,
+
+            "improvements": improvement_points,
+
+            "recommendation": final_advice
+        }
